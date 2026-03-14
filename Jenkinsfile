@@ -59,7 +59,23 @@ EOF2
 
     stage('Run Integration Tests') {
       steps {
-        sh './scripts/run-newman.sh'
+        sh '''
+          echo "Checking MI endpoint before Newman..."
+
+          for i in $(seq 1 12); do
+            if curl -sf http://host.docker.internal:8290/hello/ > /dev/null; then
+              echo "MI endpoint is ready"
+              ./scripts/run-newman.sh
+              exit 0
+            fi
+
+            echo "Endpoint not ready... attempt $i"
+            sleep 5
+          done
+
+          echo "MI endpoint did not become ready in time"
+          exit 1
+        '''
       }
     }
 
