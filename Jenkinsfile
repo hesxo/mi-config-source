@@ -6,7 +6,7 @@ pipeline {
     IMAGE_TAG = "${env.GIT_COMMIT.take(7)}"
     IMAGE = "${IMAGE_REPO}:${IMAGE_TAG}"
     TEST_CONTAINER = "mi-test-${env.BUILD_NUMBER}"
-    TEST_PORT = "18290"
+    TEST_PORT = "19${env.BUILD_NUMBER}"
     MANIFESTS_REPO = "https://github.com/hesxo/mi-manifests.git"
   }
 
@@ -20,6 +20,31 @@ pipeline {
     stage('Build Docker Image') {
       steps {
         sh 'docker build -t $IMAGE .'
+      }
+    }
+
+    stage('Prepare Newman Environment') {
+      steps {
+        sh '''
+          cat > integration/newman/environment.json <<EOF2
+          {
+            "id": "7832d106-1ac6-490b-ac20-87a8d60a1bac",
+            "name": "MI Ephemeral Test",
+            "values": [
+              {
+                "key": "baseUrl",
+                "value": "http://host.docker.internal:${TEST_PORT}",
+                "type": "default",
+                "enabled": true
+              }
+            ],
+            "color": null,
+            "_postman_variable_scope": "environment",
+            "_postman_exported_at": "2026-03-14T08:38:09.099Z",
+            "_postman_exported_using": "Postman/12.1.4"
+          }
+EOF2
+        '''
       }
     }
 
