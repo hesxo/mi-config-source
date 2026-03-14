@@ -1,15 +1,16 @@
 {
-  "id": "11111111-2222-3333-4444-555555555555",
-  "name": "Jenkins MI",
-  "values": [
-    {
-      "key": "baseUrl",
-      "value": "http://host.docker.internal:8290",
-      "type": "text",
-      "enabled": true
-    }
-  ],
-  "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-03-14T00:00:00.000Z",
-  "_postman_exported_using": "ChatGPT"
+	"id": "7832d106-1ac6-490b-ac20-87a8d60a1bac",
+	"name": "MI Ephemeral Test",
+	"values": [
+		{
+			"key": "baseUrl\n",
+			"value": "http://host.docker.internal:18290\n",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"color": null,
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2026-03-14T08:38:09.099Z",
+	"_postman_exported_using": "Postman/12.1.4"
 }
