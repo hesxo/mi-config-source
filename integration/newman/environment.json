@@ -1,10 +1,10 @@
 {
   "id": "11111111-2222-3333-4444-555555555555",
-  "name": "Local MI",
+  "name": "Jenkins MI",
   "values": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8290",
+      "value": "http://host.docker.internal:8290",
       "type": "text",
       "enabled": true
     }
