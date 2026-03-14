@@ -28,7 +28,20 @@ pipeline {
         sh '''
           docker rm -f $TEST_CONTAINER || true
           docker run -d --name $TEST_CONTAINER -p ${TEST_PORT}:8290 $IMAGE
-          sleep 20
+
+          echo "Waiting for MI container to become ready..."
+          for i in $(seq 1 18); do
+            if curl -sf http://host.docker.internal:${TEST_PORT}/hello/ > /dev/null; then
+              echo "MI is ready"
+              exit 0
+            fi
+            echo "Not ready yet... attempt $i"
+            sleep 5
+          done
+
+          echo "MI failed to become ready in time"
+          docker logs $TEST_CONTAINER || true
+          exit 1
         '''
       }
     }
