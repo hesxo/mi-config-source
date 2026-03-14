@@ -1,0 +1,15 @@
+{
+  "id": "11111111-2222-3333-4444-555555555555",
+  "name": "Local MI",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8290",
+      "type": "text",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2026-03-14T00:00:00.000Z",
+  "_postman_exported_using": "ChatGPT"
+}
