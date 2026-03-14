@@ -19,7 +19,7 @@ pipeline {
 
     stage('Build Docker Image') {
       steps {
-        sh 'docker build -t $IMAGE .'
+        sh 'docker build --platform linux/amd64 -t $IMAGE .'
       }
     }
 
@@ -52,10 +52,10 @@ EOF2
       steps {
         sh '''
           docker rm -f $TEST_CONTAINER || true
-          docker run -d --name $TEST_CONTAINER -p ${TEST_PORT}:8290 $IMAGE
+          docker run -d --platform linux/amd64 --name $TEST_CONTAINER -p ${TEST_PORT}:8290 $IMAGE
 
           echo "Waiting for MI container to become ready..."
-          for i in $(seq 1 18); do
+          for i in $(seq 1 60); do
             if curl -sf http://host.docker.internal:${TEST_PORT}/hello/ > /dev/null; then
               echo "MI is ready"
               exit 0
