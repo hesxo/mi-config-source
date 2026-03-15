@@ -48,59 +48,62 @@ The pipeline builds a custom MI Docker image with baked-in Synapse API definitio
 ```mermaid
 flowchart TD
 
-    %% Source Layer
-    A1[📄 Synapse API Configs]
-    A2[🐳 Dockerfile]
-    A3[🧪 Newman Integration Tests]
+%% Source Layer
+A1[📄 Synapse API Configs]
+A2[🐳 Dockerfile]
+A3[🧪 Newman Tests]
 
-    %% Source Repository
-    B[📂 GitHub Repository<br/>mi-config-source]
+%% Source Repo
+B[📂 GitHub Repository<br/>mi-config-source]
 
-    %% CI
-    C[⚙️ Jenkins CI Pipeline]
+%% CI
+C[⚙️ Jenkins CI Pipeline]
 
-    %% Container Registry
-    D[🐳 Docker Hub<br/>hesxo/mi-config]
+%% Registry
+D[🐳 Docker Hub<br/>hesxo/mi-config]
 
-    %% GitOps Repository
-    E[📦 GitOps Repository<br/>mi-manifests]
+%% GitOps Repo
+E[📦 GitOps Repository<br/>mi-manifests]
 
-    %% CD
-    F[🔄 Argo CD]
+%% CD
+F[🔄 Argo CD]
 
-    %% Cluster
-    G[☸️ Kubernetes Cluster]
+%% Runtime
+G[☸️ Kubernetes Cluster]
+H[⚡ WSO2 Micro Integrator Pods]
 
-    %% Runtime
-    H[⚡ WSO2 Micro Integrator Pods]
+%% Observability
+I[📡 Prometheus]
+J[📊 Grafana Dashboard]
+K[🚨 Alertmanager]
 
-    %% Observability
-    I[📡 Prometheus]
-    J[📊 Grafana Dashboard]
-    K[🚨 Alertmanager]
+%% Source Flow
+A1 --> B
+A2 --> B
+A3 --> B
 
-    %% Flow
-    A1 --> B
-    A2 --> B
-    A3 --> B
+%% CI Trigger
+B -->|Push / Webhook| C
 
-    B -->|CI Trigger| C
+%% CI Actions
+C -->|Run Integration Tests| A3
+C -->|Build & Push Image| D
+C -->|Update Deployment Image| E
 
-    C -->|Build & Push Image| D
-    C -->|Run Integration Tests| A3
+%% GitOps Deployment
+E -->|GitOps Sync| F
+F -->|Deploy| G
 
-    C -->|Update Deployment Image| E
+%% Runtime
+G --> H
 
-    E -->|GitOps Sync| F
+%% Monitoring
+H -->|Expose Metrics :9201| I
 
-    F -->|Deploy| G
-
-    G --> H
-
-    H -->|Expose Metrics :9201| I
-
-    I --> J
-    I --> K
+%% Observability
+I --> J
+I --> K
+```
 ## 📂 Related repositories
 
 | Repo | Purpose |
