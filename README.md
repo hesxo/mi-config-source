@@ -46,32 +46,61 @@ The pipeline builds a custom MI Docker image with baked-in Synapse API definitio
 ## 🏗️ System Architecture
 
 ```mermaid
-graph TD
-    %% Custom Styling
-    classDef default fill:#f2f0ff,stroke:#6b4ec2,stroke-width:2px,color:#000;
-    
-    A1[📄 Synapse Configs] --> B[📂 GitHub Source Repo]
-    A2[🐳 Dockerfile] --> B
-    A3[🧪 Newman Tests] --> B
-    
-    B -->|CI Trigger| C[⚙️ Jenkins CI Pipeline]
-    
-    C -->|Image Build| D[🐳 Docker Hub]
-    
-    D -->|Test Execution| E[🧪 Newman Integration]
-    
-    E -->|Manifest Update| F[📦 mi-manifests GitOps]
-    
-    F -->|GitOps Sync| G[🔄 Argo CD]
-    
-    G -->|Cluster Rollout| H[☸️ Kubernetes Cluster]
+flowchart TD
 
-    %% Apply Classes
-    class A1,A2,A3,B,C,D,E,F,G,H default;
-```
+    %% Source Layer
+    A1[📄 Synapse API Configs]
+    A2[🐳 Dockerfile]
+    A3[🧪 Newman Integration Tests]
 
----
+    %% Source Repository
+    B[📂 GitHub Repository<br/>mi-config-source]
 
+    %% CI
+    C[⚙️ Jenkins CI Pipeline]
+
+    %% Container Registry
+    D[🐳 Docker Hub<br/>hesxo/mi-config]
+
+    %% GitOps Repository
+    E[📦 GitOps Repository<br/>mi-manifests]
+
+    %% CD
+    F[🔄 Argo CD]
+
+    %% Cluster
+    G[☸️ Kubernetes Cluster]
+
+    %% Runtime
+    H[⚡ WSO2 Micro Integrator Pods]
+
+    %% Observability
+    I[📡 Prometheus]
+    J[📊 Grafana Dashboard]
+    K[🚨 Alertmanager]
+
+    %% Flow
+    A1 --> B
+    A2 --> B
+    A3 --> B
+
+    B -->|CI Trigger| C
+
+    C -->|Build & Push Image| D
+    C -->|Run Integration Tests| A3
+
+    C -->|Update Deployment Image| E
+
+    E -->|GitOps Sync| F
+
+    F -->|Deploy| G
+
+    G --> H
+
+    H -->|Expose Metrics :9201| I
+
+    I --> J
+    I --> K
 ## 📂 Related repositories
 
 | Repo | Purpose |
