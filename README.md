@@ -1,158 +1,212 @@
 # 📦 mi-config-source
 
-Source repository for **WSO2 Micro Integrator (MI)** configurations, Newman integration tests, and the Jenkins CI pipeline. The pipeline builds a custom MI Docker image, runs tests, updates the GitOps manifests repo, and **Argo CD** syncs those manifests to the cluster.
+<p align="center">
+  <strong>Source repository for WSO2 Micro Integrator configurations,<br>
+  Newman integration tests, and the Jenkins CI pipeline.</strong>
+</p>
 
-## 🔧 Tech stack
+<p align="center">
+  <a href="#-deployment-flow">Flow</a> •
+  <a href="#-tech-stack">Stack</a> •
+  <a href="#-build-and-run-locally">Quick start</a> •
+  <a href="#-ci-pipeline-jenkins">CI</a> •
+  <a href="#-observability--gitops-screenshots">Screenshots</a>
+</p>
 
-| Logo | Layer | Technology |
-|:----:|-------|------------|
-| <img src="https://wso2.cachefly.net/wso2/sites/all/2023/images/webp/wso2-logo.webp" width="28" alt="WSO2" /> | **Runtime** | [WSO2 Micro Integrator](https://wso2.com/integration/micro-integrator/) 4.5.0 |
-| <img src="https://apache.org/images/feather-small.gif" width="28" alt="Apache" /> | **API config** | Apache Synapse (XML APIs in `src/synapse-config/api/`) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Docker_Logo.svg" width="28" alt="Docker" /> | **Container** | [Docker](https://www.docker.com/) (multi-stage build, image `hesxo/mi-config`) |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" width="28" alt="Jenkins" /> | **CI/CD** | [Jenkins](https://www.jenkins.io/) (declarative pipeline) |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postman/postman-original.svg" width="28" alt="Postman" /> | **Testing** | [Newman](https://www.npmjs.com/package/newman) (Postman collections), Bash, `curl` |
-| <img src="https://raw.githubusercontent.com/argoproj/argo-cd/master/docs/assets/logo.png" width="28" alt="Argo CD" /> | **GitOps CD** | [Argo CD](https://argo-cd.readthedocs.io/) — syncs [mi-manifests](https://github.com/hesxo/mi-manifests) (`overlays/prod`) to Kubernetes |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/c/c2/GitHub_Invertocat_Logo.svg" width="28" alt="GitHub" /> | **Source / GitOps** | [GitHub](https://github.com/) — this repo (source); [mi-manifests](https://github.com/hesxo/mi-manifests) (Kustomize base + overlays, Argo CD Application) |
+---
 
 ## 📋 Overview
 
-- **Base image:** `wso2/wso2mi:4.5.0`
-- **Docker image:** `hesxo/mi-config` (tagged with short Git commit SHA)
-- **GitOps repo:** [hesxo/mi-manifests](https://github.com/hesxo/mi-manifests) — deployment image is updated on each successful pipeline run
+| Item | Value |
+|------|-------|
+| **Base image** | `wso2/wso2mi:4.5.0` |
+| **Docker image** | `hesxo/mi-config` (tagged with short Git commit SHA) |
+| **GitOps repo** | [hesxo/mi-manifests](https://github.com/hesxo/mi-manifests) — deployment image is updated on every successful pipeline run |
+| **Sample API** | `HelloAPI` — `GET /hello/` on port **8290** → `{"message":"hello from WSO2 MI"}` |
 
-The included **HelloAPI** exposes `GET /hello/` on port **8290** and returns JSON: `{"message":"hello from WSO2 MI"}`.
+The pipeline builds a custom MI Docker image with baked-in Synapse API definitions and observability config, runs integration tests, pushes the image to Docker Hub, and updates the GitOps manifests repo. **Argo CD** then syncs those manifests to the Kubernetes cluster.
 
-## 🔀 Deployment flow
+> [!IMPORTANT]
+> This repository uses a **GitOps-first** approach. All infrastructure and deployment changes are driven by Git commits to this source repo and the associated [manifests repository](https://github.com/hesxo/mi-manifests).
 
-1. **This repo** — You push code (Synapse APIs, Dockerfile, tests).
-2. **Jenkins** — Builds the Docker image, pushes to Docker Hub, runs Newman tests, then updates [mi-manifests](https://github.com/hesxo/mi-manifests) `base/deployment.yaml` with the new image tag.
-3. **Argo CD** — Watches the mi-manifests repo; when `base/deployment.yaml` (or overlays) change, it syncs `overlays/prod` to the cluster (namespace `mi-prod`).
-4. **Kubernetes** — Runs the MI deployment with the new image.
+## 🔧 Tech stack
 
-So: **source (here) → Jenkins → Docker Hub + mi-manifests → Argo CD → cluster.**
+| Layer | Technology |
+|:-------|------------|
+| **Runtime** | <img src="https://wso2.cachefly.net/wso2/sites/all/2023/images/webp/wso2-logo.webp" width="16" /> [WSO2 Mi](https://wso2.com/integration/micro-integrator/) 4.5.0 |
+| **API Config** | <img src="https://apache.org/images/feather-small.gif" width="16" /> Apache Synapse |
+| **Container** | <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Docker_Logo.svg" width="16" /> Docker |
+| **CI/CD** | <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" width="16" /> Jenkins |
+| **Testing** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postman/postman-original.svg" width="16" /> Newman |
+| **GitOps** | <img src="https://raw.githubusercontent.com/argoproj/argo-cd/master/docs/assets/logo.png" width="16" /> Argo CD |
+| **Monitoring** | <img src="https://grafana.com/static/assets/img/fav32.png" width="16" /> Grafana + Prometheus |
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    %% Custom Styling
+    classDef default fill:#f2f0ff,stroke:#6b4ec2,stroke-width:2px,color:#000;
+    
+    A1[📄 Synapse Configs] --> B[📂 GitHub Source Repo]
+    A2[🐳 Dockerfile] --> B
+    A3[🧪 Newman Tests] --> B
+    
+    B -->|CI Trigger| C[⚙️ Jenkins CI Pipeline]
+    
+    C -->|Image Build| D[🐳 Docker Hub]
+    
+    D -->|Test Execution| E[🧪 Newman Integration]
+    
+    E -->|Manifest Update| F[📦 mi-manifests GitOps]
+    
+    F -->|GitOps Sync| G[🔄 Argo CD]
+    
+    G -->|Cluster Rollout| H[☸️ Kubernetes Cluster]
+
+    %% Apply Classes
+    class A1,A2,A3,B,C,D,E,F,G,H default;
+```
+
+---
 
 ## 📂 Related repositories
 
 | Repo | Purpose |
 |------|---------|
-| **mi-manifests** | GitOps repo: Kustomize base (Deployment, Service) + `overlays/prod`, and Argo CD `Application` that points to `overlays/prod`. Jenkins updates the image tag here; Argo CD syncs from here. |
+| [**mi-manifests**](https://github.com/hesxo/mi-manifests) | GitOps repo containing Kustomize base (`Deployment`, `Service`, `ServiceMonitor`) + `overlays/prod` and an Argo CD `Application` resource. Jenkins updates the image tag here; Argo CD syncs from here. |
+
+---
 
 ## 📁 Repository structure
 
 ```
 mi-config-source/
-├── .gitignore
-├── Dockerfile                    # MI image with synapse configs
-├── Jenkinsfile                   # CI: build, test, push image, update GitOps
-├── README.md
+├── Dockerfile                        # Builds the MI image with synapse configs + observability
+├── Jenkinsfile                       # Declarative CI pipeline
+├── conf/
+│   └── observability.toml            # Prometheus metrics & synapse handler config (appended to deployment.toml)
 ├── src/
 │   └── synapse-config/
-│       └── api/                  # Synapse API definitions (e.g. HelloAPI.xml)
+│       └── api/
+│           └── HelloAPI.xml          # Sample Synapse API definition
 ├── integration/
 │   └── newman/
-│       ├── collection.json      # Postman/Newman test collection
-│       └── environment.json     # Newman env (baseUrl); overwritten in CI
-└── scripts/
-    └── run-newman.sh            # Runs Newman against the collection + env
+│       ├── collection.json           # Postman/Newman test collection
+│       └── environment.json          # Newman environment (baseUrl variable)
+├── scripts/
+│   └── run-newman.sh                 # Executes Newman against the collection + environment
+└── k8s-test/                         # (Reserved) Kubernetes test manifests
 ```
+
+---
 
 ## ✅ Prerequisites
 
-- **Docker** — for building and running the MI image
-- **Newman** (optional, for local integration tests): `npm install -g newman`
-- **Jenkins** (for CI): Docker Hub and GitHub credentials configured
-- **Argo CD** (for GitOps): Optional; deploy the [Argo CD Application](https://github.com/hesxo/mi-manifests/blob/main/argocd/mi-application.yaml) from mi-manifests to sync the app to Kubernetes
+| Requirement | Notes |
+|-------------|-------|
+| **Docker** | Required for building and running the MI image locally |
+| **Newman** | *(optional)* For running integration tests locally — `npm install -g newman` |
+| **Jenkins** | For CI — needs `dockerhub-creds` and `github-creds` credentials configured |
+> [!TIP]
+> To run the full CI/CD suite locally, ensure your Docker daemon has at least 4GB of RAM allocated, as WSO2 MI can be resource-intensive during startup.
+
+---
 
 ## 🚀 Build and run locally
 
-```bash
-# Build the image
-docker build -t hesxo/mi-config:local .
+### 1. Build the Docker image
 
-# Run (ports 8290, 8253, 9164)
-docker run -p 8290:8290 -p 8253:8253 -p 9164:9164 hesxo/mi-config:local
+```bash
+docker build -t hesxo/mi-config:local .
 ```
 
-**Test the API:**
+### 2. Start the MI container
+
+```bash
+docker run -p 8290:8290 -p 8253:8253 -p 9164:9164 -p 9201:9201 hesxo/mi-config:local
+```
+
+| Port | Service |
+|------|---------|
+| **8290** | HTTP API passthrough |
+| **8253** | HTTPS API passthrough |
+| **9164** | Management API |
+| **9201** | Prometheus metrics endpoint |
+
+### 3. Test the API
 
 ```bash
 curl http://localhost:8290/hello/
-# {"message":"hello from WSO2 MI"}
 ```
 
-## 📮 Testing in Postman (step-by-step)
+**Expected response:**
 
-Follow these steps to test the MI Hello API from Postman.
+```json
+{
+  "message": "hello from WSO2 MI"
+}
+```
 
-### Step 1: Prerequisites
+---
+
+## 📮 Testing with Postman (step-by-step)
+
+<details>
+<summary><strong>Click to expand Postman walkthrough</strong></summary>
+
+#### Prerequisites
 
 - Install [Docker](https://www.docker.com/get-started) and [Postman](https://www.postman.com/downloads/).
-- Open a terminal in the project root: `mi-config-source/`.
+- Open a terminal in the project root (`mi-config-source/`).
 
-### Step 2: Build the MI image
+#### Step 1 — Build and run the MI container
 
 ```bash
 docker build -t hesxo/mi-config:local .
+docker run -p 8290:8290 -p 8253:8253 -p 9164:9164 -p 9201:9201 hesxo/mi-config:local
 ```
 
-Wait until the build finishes successfully.
+Leave the terminal open. Wait until you see *"WSO2 Micro Integrator started"* in the logs.
 
-### Step 3: Run the MI container
+#### Step 2 — Import the collection
 
-```bash
-docker run -p 8290:8290 -p 8253:8253 -p 9164:9164 hesxo/mi-config:local
-```
+1. In Postman, click **Import** (top left).
+2. Select `integration/newman/collection.json`.
+3. You should see the collection **"MI Hello API Tests"**.
 
-Leave this terminal open. MI is now serving on **port 8290**. Wait a few seconds for startup (you may see “WSO2 Micro Integrator started” in the logs).
-
-### Step 4: Open Postman
-
-Launch the Postman app.
-
-### Step 5: Import the collection
-
-1. Click **Import** (top left).
-2. Click **Upload Files** or drag and drop.
-3. Select: `mi-config-source/integration/newman/collection.json`.
-4. Click **Import**. You should see the collection **“MI Hello API Tests”**.
-
-### Step 6: Import the environment
+#### Step 3 — Import the environment
 
 1. Click **Import** again.
-2. Select: `mi-config-source/integration/newman/environment.json`.
-3. Click **Import**. You should see the environment **“MI Ephemeral Test”**.
+2. Select `integration/newman/environment.json`.
+3. You should see the environment **"MI Ephemeral Test"**.
 
-### Step 7: Set the base URL for local MI
+#### Step 4 — Set the base URL
 
-1. Click the **Environments** (gear) icon in the left sidebar.
+1. Click the **Environments** icon (gear) in the left sidebar.
 2. Open **MI Ephemeral Test**.
-3. Set **CURRENT VALUE** of `baseUrl` to: `http://localhost:8290`  
-   (The initial value may be `http://host.docker.internal:18290`; change it for local testing.)
+3. Set the **Current Value** of `baseUrl` to `http://localhost:8290`.
 4. Click **Save**.
 
-### Step 8: Select the environment
+> **Note:** The initial value may be `http://host.docker.internal:18290`; change it for local testing.
 
-In the top-right of Postman, open the environment dropdown and select **MI Ephemeral Test**.
+#### Step 5 — Send the request
 
-### Step 9: Send the request
-
-1. In the left sidebar, expand **MI Hello API Tests**.
-2. Click the request **GET /hello/**.
-3. The URL should show `{{baseUrl}}/hello/` (resolved to `http://localhost:8290/hello/`).
+1. In the top-right dropdown, select the **MI Ephemeral Test** environment.
+2. Expand **MI Hello API Tests** in the sidebar.
+3. Click **GET /hello/** — the URL should resolve to `http://localhost:8290/hello/`.
 4. Click **Send**.
 
-### Step 10: Check the response
+#### Step 6 — Verify the response
 
-- **Status:** `200 OK`
-- **Body (JSON):**
+| Field | Expected |
+|-------|----------|
+| **Status** | `200 OK` |
+| **Body** | `{"message":"hello from WSO2 MI"}` |
 
-  ```json
-  {
-    "message": "hello from WSO2 MI"
-  }
-  ```
-
-If you see this, the API is working. To test without the collection, use a new request: **GET** `http://localhost:8290/hello/`.
+</details>
 
 ---
 
@@ -160,39 +214,116 @@ If you see this, the API is working. To test without the collection, use a new r
 
 Tests are defined in `integration/newman/collection.json` and use `integration/newman/environment.json` for the `baseUrl` variable.
 
-**Local (MI on host):**
+**Run locally** (MI must be running on the port specified in `environment.json`):
 
 ```bash
-# Ensure MI is running on the port set in environment.json (e.g. 8290)
 ./scripts/run-newman.sh
 ```
 
-**CI:** The Jenkinsfile prepares `environment.json` with `baseUrl: http://host.docker.internal:8290`, waits for the MI endpoint to be ready, then runs `./scripts/run-newman.sh`.
+**In CI:** The Jenkinsfile overwrites `environment.json` with `baseUrl: http://host.docker.internal:8290`, polls the endpoint until it is ready (up to 12 × 5 s), then invokes `./scripts/run-newman.sh`.
+
+---
 
 ## 🔄 CI pipeline (Jenkins)
 
-| Stage | Description |
-|-------|-------------|
-| **Checkout** | Clone this repo |
-| **Build Docker Image** | `docker build -t $IMAGE .` (tag = short commit SHA) |
-| **Push Docker Image** | Push to Docker Hub using `dockerhub-creds` |
-| **Prepare Newman Environment** | Write `integration/newman/environment.json` with MI base URL for tests |
-| **Run Integration Tests** | Poll `http://host.docker.internal:8290/hello/` (up to 12×5s), then run Newman |
-| **Update GitOps Repo** | Clone `mi-manifests`, update `base/deployment.yaml` image to `$IMAGE`, commit and push using `github-creds` |
+The declarative pipeline in [`Jenkinsfile`](Jenkinsfile) runs the following stages:
 
-After the push, **Argo CD** (if installed and watching mi-manifests) will detect the change and sync the app to the cluster.
+| # | Stage | Description |
+|:-:|-------|-------------|
+| 1 | **Checkout** | Clone this repository |
+| 2 | **Build Docker Image** | `docker build -t $IMAGE .` — tag is the 7-char Git commit SHA |
+| 3 | **Push Docker Image** | Push to Docker Hub using `dockerhub-creds` |
+| 4 | **Prepare Newman Environment** | Generate `environment.json` with `baseUrl` pointing to `host.docker.internal:8290` |
+| 5 | **Run Integration Tests** | Poll `GET /hello/` until ready, then execute Newman |
+| 6 | **Update GitOps Repo** | Clone `mi-manifests`, `sed`-replace the image tag in `base/deployment.yaml`, commit & push |
 
-**Required Jenkins credentials:**
+After the push, **Argo CD** detects the manifest change and syncs the new deployment to the cluster.
 
-- `dockerhub-creds` — Username/Password for Docker Hub
-- `github-creds` — Username/Password (or token) for GitHub (mi-manifests push)
+### Required Jenkins credentials
+
+| Credential ID | Type | Purpose |
+|----------------|------|---------|
+| `dockerhub-creds` | Username / Password | Push images to Docker Hub |
+| `github-creds` | Username / Password (or PAT) | Push manifest updates to `mi-manifests` |
+
+---
 
 ## ✏️ Adding or changing APIs
 
-1. Add or edit XML files under `src/synapse-config/api/` (e.g. `HelloAPI.xml`).
-2. Rebuild the image and run Newman to verify.
-3. Commit and push; Jenkins will build, test, and update the GitOps repo.
+1. Add or edit XML files under `src/synapse-config/api/` (e.g., `HelloAPI.xml`).
+2. Rebuild the image locally and run Newman to verify.
+3. Commit and push — Jenkins will build, test, and update the GitOps repo automatically.
 
-## 📄 License
+---
 
-See the repository license file if present.
+## 📊 Observability & GitOps screenshots
+
+Screenshots below show the end-to-end flow: **Argo CD** deploys from Git, **Jenkins** builds and updates the image, **Grafana** and **Prometheus** provide metrics and alerting, and **Slack** and **Email** deliver notifications.
+
+---
+
+### <img src="https://raw.githubusercontent.com/argoproj/argo-cd/master/docs/assets/logo.png" width="24" alt="" /> Argo CD — GitOps deployment
+
+| |
+|:--:|
+| **[Argo CD – mi-application](https://i.postimg.cc/T1KKw766/Screenshot-2026-03-14-at-8-38-28-PM.png)** |
+| <a href="https://i.postimg.cc/T1KKw766/Screenshot-2026-03-14-at-8-38-28-PM.png"><img src="https://i.postimg.cc/T1KKw766/Screenshot-2026-03-14-at-8-38-28-PM.png" alt="Argo CD Application" width="720" /></a> |
+
+This view shows the `mi-application` Argo CD app that syncs the `mi-manifests` GitOps repo into the `mi-prod` namespace. Health and sync status indicate if the MI deployment, service, and `ServiceMonitor` are up-to-date with Git.
+
+---
+
+### <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Jenkins_logo.svg" width="24" alt="" /> Jenkins — CI pipeline
+
+| |
+|:--:|
+| **[Jenkins pipeline run](https://i.postimg.cc/52SLDr9K/Screenshot-2026-03-14-at-6-36-39-PM.png)** |
+| <a href="https://i.postimg.cc/52SLDr9K/Screenshot-2026-03-14-at-6-36-39-PM.png"><img src="https://i.postimg.cc/52SLDr9K/Screenshot-2026-03-14-at-6-36-39-PM.png" alt="Jenkins Pipeline" width="720" /></a> |
+
+The Jenkins declarative pipeline builds the MI Docker image, runs Newman integration tests, and then updates the `mi-manifests` deployment image tag so Argo CD can roll out the new version.
+
+---
+
+### <img src="https://grafana.com/static/assets/img/fav32.png" width="24" alt="" /> Grafana — WSO2 MI dashboard
+
+| |
+|:--:|
+| **[Grafana MI dashboard](https://i.postimg.cc/QxpTWz7h/Screenshot-2026-03-14-at-8-38-44-PM.png)** |
+| <a href="https://i.postimg.cc/QxpTWz7h/Screenshot-2026-03-14-at-8-38-44-PM.png"><img src="https://i.postimg.cc/QxpTWz7h/Screenshot-2026-03-14-at-8-38-44-PM.png" alt="Grafana Dashboard" width="720" /></a> |
+
+Grafana visualizes Prometheus metrics exposed by WSO2 MI, including HTTP/API performance, JVM metrics, and overall health, giving a quick overview of runtime behavior.
+
+---
+
+### <img src="https://prometheus.io/assets/prometheus_logo_grey.svg" width="24" alt="" /> Prometheus & Alertmanager — alerts
+
+| |
+|:--:|
+| **[Prometheus alerts](https://i.postimg.cc/7Z5rWFnd/Screenshot-2026-03-14-at-11-06-25-PM.png)** |
+| <a href="https://i.postimg.cc/7Z5rWFnd/Screenshot-2026-03-14-at-11-06-25-PM.png"><img src="https://i.postimg.cc/7Z5rWFnd/Screenshot-2026-03-14-at-11-06-25-PM.png" alt="Prometheus Alerts" width="720" /></a> |
+
+Prometheus alerting rules fire when error rates, latency, or resource usage cross defined thresholds. Alertmanager then routes these alerts to Slack and email receivers.
+
+---
+
+### <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" width="24" alt="" /> Slack — operational notifications
+
+| |
+|:--:|
+| **[Slack alert channel](https://i.postimg.cc/MKPvR8Gs/Screenshot-2026-03-14-at-11-07-38-PM.png)** |
+| <a href="https://i.postimg.cc/MKPvR8Gs/Screenshot-2026-03-14-at-11-07-38-PM.png"><img src="https://i.postimg.cc/MKPvR8Gs/Screenshot-2026-03-14-at-11-07-38-PM.png" alt="Slack Alerts" width="720" /></a> |
+
+A dedicated Slack channel receives real-time alerts for MI and platform issues so the team can react quickly, with alert details such as name, severity, and affected service.
+
+---
+
+### 📧 Email — alert notifications
+
+| |
+|:--:|
+| **[Email alert](https://i.postimg.cc/gJD7JsKq/Screenshot-2026-03-15-at-1-34-59-AM.png)** |
+| <a href="https://i.postimg.cc/gJD7JsKq/Screenshot-2026-03-15-at-1-34-59-AM.png"><img src="https://i.postimg.cc/gJD7JsKq/Screenshot-2026-03-15-at-1-34-59-AM.png" alt="Email Alerts" width="720" /></a> |
+
+Email is configured as an additional Alertmanager receiver, providing redundancy to Slack and ensuring critical alerts reach on-call engineers even if chat notifications are missed.
+
+---
