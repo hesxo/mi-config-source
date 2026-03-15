@@ -48,61 +48,45 @@ The pipeline builds a custom MI Docker image with baked-in Synapse API definitio
 ```mermaid
 flowchart TD
 
-%% Source Layer
-A1[📄 Synapse API Configs]
-A2[🐳 Dockerfile]
-A3[🧪 Newman Tests]
+A[🐳 Dockerfile + 📄 Synapse API Configs]
 
-%% Source Repo
 B[📂 GitHub Repository<br/>mi-config-source]
 
-%% CI
 C[⚙️ Jenkins CI Pipeline]
 
-%% Registry
 D[🐳 Docker Hub<br/>hesxo/mi-config]
 
-%% GitOps Repo
-E[📦 GitOps Repository<br/>mi-manifests]
+E[🔄 Argo CD]
 
-%% CD
-F[🔄 Argo CD]
+F[☸️ Kubernetes Cluster]
 
-%% Runtime
-G[☸️ Kubernetes Cluster]
-H[⚡ WSO2 Micro Integrator Pods]
+G[⚡ WSO2 Micro Integrator Pods]
 
-%% Observability
-I[📡 Prometheus]
-J[📊 Grafana Dashboard]
-K[🚨 Alertmanager]
+H[📡 Prometheus]
 
-%% Source Flow
-A1 --> B
-A2 --> B
-A3 --> B
+I[📊 Grafana Dashboard]
 
-%% CI Trigger
+J[🚨 Alertmanager]
+
+K[📦 GitOps Repository<br/>mi-manifests]
+
+T[🧪 Newman Integration Tests]
+
+A --> B
 B -->|Push / Webhook| C
 
-%% CI Actions
-C -->|Run Integration Tests| A3
+C -->|Run Integration Tests| T
 C -->|Build & Push Image| D
-C -->|Update Deployment Image| E
+C -->|Update Deployment Image| K
 
-%% GitOps Deployment
-E -->|GitOps Sync| F
-F -->|Deploy| G
+K -->|GitOps Sync| E
+E -->|Deploy| F
 
-%% Runtime
-G --> H
+F --> G
+G -->|Expose Metrics :9201| H
 
-%% Monitoring
-H -->|Expose Metrics :9201| I
-
-%% Observability
-I --> J
-I --> K
+H --> I
+H --> J
 ```
 ## 📂 Related repositories
 
